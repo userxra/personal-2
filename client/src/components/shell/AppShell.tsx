@@ -80,11 +80,9 @@ export function AppShell({ preload }: { preload?: () => void }) {
   const inEditor = useInEditor();
 
   useRealtime(true);
-  // Time is recorded for the section on screen (`lib/sections.ts`).
-  // An encrypted entry on screen is left out entirely, like the vault.
-  const { hiddenFromStats } = useUI();
+  // Time is recorded for the section on screen (`lib/sections.ts`), encrypted entries included.
   const section = sectionOf(useLocation().pathname);
-  useActivityTracking(user?.id, hiddenFromStats ? null : section);
+  useActivityTracking(user?.id, section);
 
   useKeydown((e) => {
     if (e.defaultPrevented) return;
