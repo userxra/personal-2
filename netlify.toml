@@ -10,7 +10,7 @@
 # (first-party cookies, no CORS). Replace the host with your Render service URL.
 [[redirects]]
   from = "/api/*"
-  to = "https://personal-api-t3l1.onrender.com/api/:splat"
+  to = "https://personal-2-phi0.onrender.com/api/:splat"
   status = 200
   force = true
 
