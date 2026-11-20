@@ -6,7 +6,7 @@ import { BADGES } from './logic';
 /** The streak badges in a row: flames reached in colour, the rest greyed out. */
 export function Badges({ streak }: { streak: number }) {
   return (
-    <section className="rounded-[20px] bg-surface p-4">
+    <section className="rounded-[20px] bg-surface p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
       <h2 className="text-base font-bold text-ink">Streak badges</h2>
       <div className="mt-4 flex items-start">
         {BADGES.map((b, i) => {

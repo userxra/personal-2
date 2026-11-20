@@ -33,6 +33,7 @@ export default defineMiniapp<BrushData>({
     const { stage } = stageOf(formStreak(s, mood));
     return { glyph: molarGlyph(stage.id, mood), background: LOOKS[stage.id].icon };
   },
+  fullScreen: true,
   badge: dueNow,
   App: lazy(() => import('./App')),
   Widget: lazy(() => import('./Widget')),

@@ -6,7 +6,11 @@ export interface BrushData {
   v: 1;
   /** Day (YYYY-MM-DD, days start at 03:00) → when each brush was logged (ISO time). */
   days: Record<string, { m?: string; e?: string }>;
+  /** The look of the Brush screen: light (the default), dark, or the same as the site. */
+  look?: Look;
 }
+
+export type Look = 'light' | 'dark' | 'site';
 
 export const INITIAL: BrushData = { v: 1, days: {} };
 
@@ -37,7 +41,8 @@ export function setSlot(data: BrushData, day: string, slot: Slot, at: string | n
 export function merge(a: BrushData, b: BrushData): BrushData {
   const days: BrushData['days'] = { ...a.days };
   for (const [k, v] of Object.entries(b.days)) days[k] = { ...days[k], ...v };
-  return { v: 1, days };
+  const look = b.look ?? a.look;
+  return look ? { v: 1, days, look } : { v: 1, days };
 }
 
 export interface Stats {

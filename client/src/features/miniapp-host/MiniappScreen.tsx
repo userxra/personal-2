@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
+import { Page } from '../../components/shell/PageHeader';
 import { Loading } from '../../components/ui/misc';
 import { useMiniappState } from './api';
 import { MiniappFrame } from './Frame';
@@ -40,6 +41,14 @@ export default function MiniappScreen() {
     );
 
   const App = def.App;
+  if (def.fullScreen)
+    return (
+      <Page width="narrow">
+        <MiniappRuntime definition={def} place="app">
+          <App />
+        </MiniappRuntime>
+      </Page>
+    );
   return (
     <MiniappFrame title={def.name} icon={icon}>
       <MiniappRuntime definition={def} place="app">

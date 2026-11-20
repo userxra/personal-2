@@ -280,6 +280,20 @@ export function molarMarkup(
   );
   defs.push(
     radial(
+      `${P}-iris`,
+      0.42,
+      0.38,
+      0.62,
+      [
+        [0, '#c08a5c'],
+        [0.5, '#7a4a2c'],
+        [1, '#3e2216'],
+      ],
+      false,
+    ),
+  );
+  defs.push(
+    radial(
       `${P}-pup`,
       0.4,
       0.35,
@@ -291,7 +305,7 @@ export function molarMarkup(
       false,
     ),
   );
-  const ex = baby ? 13.5 : 12;
+  const ex = baby ? 13.5 : 12.5;
   const ey = baby ? 15.5 : 14;
   defs.push(
     `<clipPath id="${P}-el"><ellipse cx="80" cy="96" rx="${ex}" ry="${ey}"/></clipPath><clipPath id="${P}-er"><ellipse cx="120" cy="96" rx="${ex}" ry="${ey}"/></clipPath>`,
@@ -777,20 +791,38 @@ function facets(P: string): string {
 function face(P: string, mood: Mood, baby: boolean, gold: boolean): string {
   const s = (w = 4.2) =>
     `stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
-  const rx = baby ? 13.5 : 12;
+  // Natural eyes: a white with a large warm-brown iris, a dark pupil and a bright catch-light,
+  // an eyelid line along the top, and soft brows.
+  const rx = baby ? 13.5 : 12.5;
   const ry = baby ? 15.5 : 14;
-  const pr = baby ? 9 : 7.5;
-  const eye = (cx: number, px = 0, py = 0) =>
-    `<ellipse cx="${cx}" cy="96" rx="${rx}" ry="${ry}" fill="url(#${P}-scl)"/><circle cx="${cx + px}" cy="${97 + py}" r="${pr}" fill="url(#${P}-pup)"/><circle cx="${cx + px - 2.8}" cy="${93.6 + py}" r="${baby ? 3.4 : 2.8}" fill="#fff"/><circle cx="${cx + px + 2.6}" cy="${100.4 + py}" r="1.3" fill="#fff" opacity=".85"/>`;
+  const ir = baby ? 10 : 9;
+  const pu = baby ? 4.8 : 4;
+  const eye = (cx: number, px = 0, py = 0) => {
+    const clip = cx < 100 ? 'el' : 'er';
+    const x = cx + px;
+    const y = 97 + py;
+    return (
+      `<ellipse cx="${cx}" cy="96" rx="${rx}" ry="${ry}" fill="url(#${P}-scl)"/>` +
+      `<g clip-path="url(#${P}-${clip})"><circle cx="${x}" cy="${y}" r="${ir}" fill="url(#${P}-iris)"/><circle cx="${x}" cy="${y}" r="${ir}" fill="none" stroke="#2a160e" stroke-width="1" opacity=".55"/><circle cx="${x}" cy="${y}" r="${pu}" fill="#140b08"/><ellipse cx="${cx}" cy="${96 - ry + 2}" rx="${rx}" ry="5" fill="#2a1a14" opacity=".14" filter="url(#${P}-b2)"/></g>` +
+      `<circle cx="${f1(x + 2.6)}" cy="${f1(y - 3.2)}" r="${baby ? 3.2 : 2.7}" fill="#fff"/><circle cx="${f1(x - 2.8)}" cy="${f1(y + 3)}" r="1.2" fill="#fff" opacity=".8"/>` +
+      `<path d="M${cx - rx - 0.5} 97Q${cx} ${f1(96 - ry * 1.95)} ${cx + rx + 0.5} 97" stroke="${INK}" stroke-width="2.8" stroke-linecap="round" fill="none"/>`
+    );
+  };
+  const brows = (lift = 0) =>
+    `<path d="M70 ${76 - lift}Q80 ${70 - lift} 90 ${75 - lift}M110 ${75 - lift}Q120 ${70 - lift} 130 ${76 - lift}" stroke="#3a2a26" stroke-width="3.8" stroke-linecap="round" fill="none"/>`;
   const lid = (clip: 'el' | 'er', cx: number, yl: number, yr: number) =>
-    `<g clip-path="url(#${P}-${clip})"><path d="M${cx - 16} 74H${cx + 16}V${96 + yr}L${cx - 16} ${96 + yl}Z" fill="url(#${P}-body)"/><path d="M${cx - 16} ${96 + yl}L${cx + 16} ${96 + yr}" stroke="${INK}" stroke-width="3.2"/></g>`;
+    `<g clip-path="url(#${P}-${clip})"><path d="M${cx - 16} 74H${cx + 16}V${96 + yr}L${cx - 16} ${96 + yl}Z" fill="url(#${P}-body)"/><path d="M${cx - 16} ${96 + yl}L${cx + 16} ${96 + yr}" stroke="${INK}" stroke-width="3"/></g>`;
   const open = (px = 0, py = 0) => eye(80, px, py) + eye(120, px, py);
   const eyes: Record<Mood, string> = {
-    hello: open(),
-    happy: `<path d="M70 99Q80 86 90 99M110 99Q120 86 130 99" ${s(5)}/>`,
+    hello: open(1, 0) + brows(1),
+    happy: `<path d="M70 99Q80 87 90 99M110 99Q120 87 130 99" ${s(4.6)}/>` + brows(2),
     frozen: `<path d="M70 95Q80 101 90 95M110 95Q120 101 130 95" ${s(4.6)}/>`,
-    content: open(0, -2),
-    waiting: open(0, 2) + lid('el', 80, -4, -4) + lid('er', 120, -4, -4),
+    content: open(2, -1.5) + brows(0),
+    waiting:
+      open(0, 2) +
+      lid('el', 80, -3, -3) +
+      lid('er', 120, -3, -3) +
+      `<path d="M70 76Q80 74 90 76M110 76Q120 74 130 76" stroke="#3a2a26" stroke-width="3.8" stroke-linecap="round" fill="none"/>`,
     annoyed:
       open(4, 4) +
       lid('el', 80, 1, 1) +

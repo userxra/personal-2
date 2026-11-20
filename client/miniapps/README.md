@@ -119,6 +119,7 @@ the `teeth` app does, so the manifest stays small.)
 | `dayKey(date?, startHour?)`                          | `YYYY-MM-DD` of a moment. With `startHour` 3, 00:00 to 02:59 still counts as the day before.                                                               |
 | `addDays(key, n)`, `dateOf(key)`                     | Day arithmetic on `YYYY-MM-DD` keys.                                                                                                                       |
 | `Glyph`, `MiniappIconSpec` (types)                   | An icon picture component; the shape of `icon` (and of what `liveIcon` returns).                                                                           |
+| `useStatusBarColor(colour)`                          | Colours the phone's status bar while the component shows (for a full-screen app's coloured top).                                                           |
 | `useToast()`                                         | `toast({ message, tone?: 'error', action?: { label, onClick } })`.                                                                                         |
 | `Button`, `IconButton`, `Card`, `SectionLabel`, `cn` | The site's button and card styles, a section heading, class joining.                                                                                       |
 
@@ -128,6 +129,14 @@ the `teeth` app does, so the manifest stays small.)
 dot), or 0 / false / null for none. It is worked out from the app's saved data whenever the
 miniapps screen shows (folders add up their apps' badges), so keep it quick and pure. Badge only
 what is actually due (Brush: brushes due today and not logged).
+
+## Full screen
+
+`fullScreen: true` (optional) shows the app's screen without the title bar and back link: the app
+draws its own top from the very top of the page (clear the phone's status bar with `pt-safe`;
+leave the page's 16px side margin with `-mx-4` for edge-to-edge colour). `useStatusBarColor(colour)`
+colours the phone's status bar while the screen shows, so a coloured top reaches the very top;
+it goes back to the site's colour afterwards. Brush uses both.
 
 ## Live icon
 
@@ -170,4 +179,4 @@ squircle. Brush uses both: Molar's face, in his current form and mood, on that f
   Diamond 365) and his face shows today (nine moods, including Worried when a 3+ day streak is at
   risk late in the evening and Frozen when only yesterday is missing). The streak flame changes
   colour at 3, 7, 14, 30, 100 and 365 days. The art is SVG built in `art.ts` from constants and
-  shown by `Molar.tsx`. The screen opens on a hero (`Hero.tsx`): the streak in big numbers over the current form's colour, and every form in a row to swipe through, forms not reached shown only as an outline; below it, cards for today, the streak badges (`Badges.tsx`, flames not reached greyed out) and the history. Live icon (form and mood), widget, badge for brushes due today.
+  shown by `Molar.tsx`. The screen is full screen and has its own light (default) and dark look, or follows the site (`theme.ts`, the button at the top right, saved in the app's data). It opens on a hero (`Hero.tsx`): the streak in big numbers over the current form's colour, and every form in a row to swipe through, forms not reached shown only as an outline; below it, cards for today, the streak badges (`Badges.tsx`, flames not reached greyed out) and the history. Live icon (form and mood), widget, badge for brushes due today.
