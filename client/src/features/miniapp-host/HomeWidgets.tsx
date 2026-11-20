@@ -18,7 +18,7 @@ export function HomeWidgets() {
               to={`/miniapps/${a.id}`}
               className="flex items-center gap-2 border-b border-line/70 px-3 py-2 text-2xs font-medium uppercase tracking-[0.12em] text-ink-faint hover:text-ink"
             >
-              <MiniappIcon {...a.icon} size="xs" />
+              <MiniappIcon {...a.icon} app={a} size="xs" />
               {a.name}
             </Link>
             <div className="p-3">

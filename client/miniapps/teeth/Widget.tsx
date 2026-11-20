@@ -1,7 +1,16 @@
-import { Check, Flame, Moon, Sun } from 'lucide-react';
+import { Check, Moon, Sun } from 'lucide-react';
 import { cn, useAppData, useMiniapp, useNow } from '@miniapp/sdk';
-import { Molar } from './Molar';
-import { moodOf, setSlot, stats, todayKey, type BrushData } from './logic';
+import { Molar, StreakFlame } from './Molar';
+import {
+  flameOf,
+  formStreak,
+  moodOf,
+  setSlot,
+  stageOf,
+  stats,
+  todayKey,
+  type BrushData,
+} from './logic';
 
 /** Home widget: Molar, today's two brushes (tap to log), the streak. */
 export default function TeethWidget() {
@@ -12,11 +21,14 @@ export default function TeethWidget() {
   const s = stats(data, now);
   const { mood, line } = moodOf(s, now);
   const today = todayKey(now);
+  const form = formStreak(s, mood);
+  const { stage } = stageOf(form);
+  const flame = flameOf(form, mood);
 
   return (
     <div className="flex items-center gap-3">
       <button type="button" onClick={open} aria-label="Open Brush" className="shrink-0">
-        <Molar mood={mood} className="h-14 w-14" />
+        <Molar stage={stage.id} mood={mood} label={stage.name} className="h-16 w-16" />
       </button>
       <div className="min-w-0 flex-1">
         <p className="line-clamp-2 text-sm text-ink" data-testid="molar-line">
@@ -45,10 +57,10 @@ export default function TeethWidget() {
               </button>
             );
           })}
-          {s.streak > 0 && (
-            <span className="ml-auto inline-flex items-center gap-1 text-sm text-ink">
-              <Flame className="h-4 w-4 text-warn" strokeWidth={2} aria-hidden />
-              {s.streak}
+          {form > 0 && (
+            <span className="ml-auto inline-flex items-center gap-0.5 text-sm text-ink">
+              {flame && <StreakFlame tier={flame} className="h-6 w-5" />}
+              {form}
             </span>
           )}
         </div>

@@ -1,7 +1,10 @@
+import { useQuery } from '@tanstack/react-query';
 import { useId } from 'react';
 import type { CSSProperties } from 'react';
 import { cn } from '../../lib/cn';
-import type { Glyph } from './sdk/types';
+import { appDataQuery } from './sdk/data';
+import { useNow } from './sdk/dates';
+import type { Glyph, MiniappDefinition } from './sdk/types';
 
 /**
  * The squircle (a superellipse, n = 5) phone launchers use for app icons, in a 100 x 100 box.
@@ -43,24 +46,50 @@ export interface IconLook {
   gradient?: readonly [string, string];
   /** Glyph colour (default white). */
   color?: string;
+  /** The glyph is a whole picture, drawn edge to edge and cut to the squircle. */
+  fill?: boolean;
 }
+
+type IconProps = IconLook & {
+  size?: keyof typeof SIZES;
+  className?: string;
+  /** The app the icon belongs to: its `liveIcon`, if any, changes the picture with its data. */
+  app?: MiniappDefinition;
+};
 
 /**
  * An app icon, like a phone's: a squircle in a clear colour (or a two-colour gradient), a large
  * glyph, no shadow and no bevel. A plain colour gets a faint light at the top so it doesn't look
  * printed; that's all the finish there is.
  */
-export function MiniappIcon({
+export function MiniappIcon({ app, ...props }: IconProps) {
+  return app?.liveIcon ? <LiveIcon app={app} {...props} /> : <StaticIcon {...props} />;
+}
+
+/** An icon worked out from its app's data (read through the same cache the app uses). */
+function LiveIcon({ app, ...props }: IconProps & { app: MiniappDefinition }) {
+  const q = useQuery(appDataQuery(app));
+  const now = useNow();
+  let live = null;
+  if (q.isSuccess) {
+    try {
+      live = app.liveIcon!(q.data.data ?? app.initialData, now);
+    } catch {
+      // A broken live icon falls back to the usual one.
+    }
+  }
+  return <StaticIcon {...props} {...live} />;
+}
+
+function StaticIcon({
   glyph: GlyphIcon,
   background,
   gradient,
   color = '#ffffff',
+  fill,
   size = 'md',
   className,
-}: IconLook & {
-  size?: keyof typeof SIZES;
-  className?: string;
-}) {
+}: Omit<IconProps, 'app'>) {
   const id = useId().replace(/:/g, '');
   const [from, to] = gradient ?? [`color-mix(in srgb, ${background} 86%, white)`, background];
   return (
@@ -83,7 +112,16 @@ export function MiniappIcon({
         </defs>
         <path d={SQUIRCLE} fill={`url(#${id}f)`} />
       </svg>
-      <GlyphIcon className="relative h-[58%] w-[58%]" strokeWidth={size === 'xs' ? 2.5 : 2.25} />
+      {fill ? (
+        <span
+          className="absolute inset-0"
+          style={{ mask: SQUIRCLE_MASK, WebkitMask: SQUIRCLE_MASK }}
+        >
+          <GlyphIcon className="h-full w-full" />
+        </span>
+      ) : (
+        <GlyphIcon className="relative h-[58%] w-[58%]" strokeWidth={size === 'xs' ? 2.5 : 2.25} />
+      )}
     </span>
   );
 }

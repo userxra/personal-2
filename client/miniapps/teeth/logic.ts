@@ -1,4 +1,5 @@
 import { addDays, dayKey } from '@miniapp/sdk';
+import type { FlameTier } from './art';
 
 /** Brushing data, saved to the account. */
 export interface BrushData {
@@ -48,6 +49,11 @@ export interface Stats {
   total: number;
   /** Days in a row, before today, with at least one brush missing (since the first log). */
   missedDays: number;
+  /**
+   * When only yesterday is missing: the full days in a row before it. Logging yesterday brings
+   * them back, so Molar is frozen rather than reset.
+   */
+  frozenStreak: number;
   firstDay: string | null;
 }
 
@@ -73,6 +79,9 @@ export function stats(data: BrushData, now: Date): Stats {
   if (firstDay)
     for (let d = addDays(t, -1); d >= firstDay && !complete(data.days[d]); d = addDays(d, -1))
       missedDays++;
+  let frozenStreak = 0;
+  if (missedDays === 1)
+    for (let d = addDays(t, -2); complete(data.days[d]); d = addDays(d, -1)) frozenStreak++;
   const total = Object.values(data.days).reduce((n, v) => n + (v.m ? 1 : 0) + (v.e ? 1 : 0), 0);
   return {
     today: data.days[t] ?? {},
@@ -81,11 +90,21 @@ export function stats(data: BrushData, now: Date): Stats {
     best,
     total,
     missedDays,
+    frozenStreak,
     firstDay,
   };
 }
 
-export type Mood = 'hello' | 'happy' | 'content' | 'waiting' | 'annoyed' | 'angry' | 'furious';
+export type Mood =
+  | 'hello'
+  | 'happy'
+  | 'content'
+  | 'waiting'
+  | 'annoyed'
+  | 'worried'
+  | 'frozen'
+  | 'angry'
+  | 'furious';
 
 const LINES: Record<Mood, string[]> = {
   hello: ["Hi, I'm Molar. Brush me twice a day and we'll get along fine."],
@@ -109,6 +128,16 @@ const LINES: Record<Mood, string[]> = {
     'Bed without brushing? Over my enamel.',
     'I can still taste dinner. Can you? Brush.',
   ],
+  worried: [
+    'Our {n}-day streak ends at 3 am. Evening brush, please.',
+    '{n} days in a row. Please not tonight. Brush.',
+    "I'm sweating here. {n} days, and the night is running out.",
+  ],
+  frozen: [
+    "I'm frozen. Brushed yesterday and forgot to log it?",
+    'Brrr. Log yesterday and our {n} days thaw out.',
+    "Yesterday is missing. If you brushed, log it and I'll warm up.",
+  ],
   angry: [
     'You skipped yesterday. I noticed. I always notice.',
     "Yesterday you forgot me. Today you won't.",
@@ -124,17 +153,64 @@ const LINES: Record<Mood, string[]> = {
 /** How Molar feels, and what it says. The line changes each day, not each look. */
 export function moodOf(s: Stats, now: Date): { mood: Mood; line: string } {
   const h = hourOfDay(now); // 0 = 03:00
+  // Late with a brush missing: worried for a real streak (3+ days), annoyed otherwise.
+  const late = s.streak >= 3 ? 'worried' : 'annoyed';
   let mood: Mood;
   if (!s.firstDay) mood = 'hello';
   else if (s.today.m && s.today.e) mood = 'happy';
   else if (s.missedDays >= 2) mood = 'furious';
-  else if (s.missedDays === 1) mood = 'angry';
+  else if (s.missedDays === 1) mood = s.frozenStreak > 0 ? 'frozen' : 'angry';
   else if (s.today.m)
-    mood = h >= 18 ? 'annoyed' : 'content'; // after 21:00, no evening yet
-  else mood = h >= 8 ? 'annoyed' : 'waiting'; // after 11:00, no morning yet
+    mood = h >= 18 ? late : 'content'; // after 21:00, no evening yet
+  else mood = h >= 8 ? late : 'waiting'; // after 11:00, no morning yet
   const lines = LINES[mood];
   const seed = Number(todayKey(now).replaceAll('-', '')) % lines.length;
-  return { mood, line: lines[seed]! };
+  const n = mood === 'frozen' ? s.frozenStreak : s.streak;
+  return { mood, line: lines[seed]!.replaceAll('{n}', String(n)) };
+}
+
+export type StageId =
+  'milk' | 'little' | 'molar' | 'athlete' | 'blazing' | 'royal' | 'golden' | 'diamond';
+
+/** Molar's forms, by full days in a row. */
+export const STAGES: readonly { id: StageId; name: string; from: number }[] = [
+  { id: 'milk', name: 'Milk Tooth', from: 0 },
+  { id: 'little', name: 'Little Molar', from: 1 },
+  { id: 'molar', name: 'Molar', from: 3 },
+  { id: 'athlete', name: 'Athlete', from: 7 },
+  { id: 'blazing', name: 'Blazing', from: 14 },
+  { id: 'royal', name: 'Royal', from: 30 },
+  { id: 'golden', name: 'Golden', from: 100 },
+  { id: 'diamond', name: 'Diamond', from: 365 },
+];
+
+/**
+ * The streak Molar's form shows: the current one, or, while frozen, the one that logging
+ * yesterday would bring back.
+ */
+export const formStreak = (s: Stats, mood: Mood) => (mood === 'frozen' ? s.frozenStreak : s.streak);
+
+/** Molar's form for a streak, and the next one (null at the top). */
+export function stageOf(streak: number) {
+  let i = 0;
+  while (i + 1 < STAGES.length && streak >= STAGES[i + 1]!.from) i++;
+  return { stage: STAGES[i]!, next: STAGES[i + 1] ?? null };
+}
+
+/**
+ * The flame by the streak number, from day 3: yellow, orange, red, magenta, then gold at 100
+ * and crystal at 365. Grey while today is at risk, frost while frozen, none below 3 days.
+ */
+export function flameOf(streak: number, mood: Mood): FlameTier | null {
+  if (mood === 'frozen') return 'frost';
+  if (streak < 3) return null;
+  if (mood === 'worried') return 'grey';
+  if (streak >= 365) return 'crystal';
+  if (streak >= 100) return 'gold';
+  if (streak >= 30) return 'magenta';
+  if (streak >= 14) return 'red';
+  if (streak >= 7) return 'orange';
+  return 'spark';
 }
 
 /**

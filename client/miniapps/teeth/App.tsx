@@ -1,12 +1,16 @@
-import { Check, Flame, Moon, Sun } from 'lucide-react';
+import { Check, Moon, Sun } from 'lucide-react';
 import { addDays, cn, useAppData, useNow, useToast } from '@miniapp/sdk';
 import { History } from './History';
-import { Molar } from './Molar';
+import type { FlameTier } from './art';
+import { Molar, StreakFlame } from './Molar';
 import {
   currentSlot,
+  flameOf,
+  formStreak,
   moodOf,
   pastTime,
   setSlot,
+  stageOf,
   stats,
   todayKey,
   type BrushData,
@@ -28,6 +32,9 @@ export default function TeethApp() {
   const s = stats(data, now);
   const { mood, line } = moodOf(s, now);
   const slotNow = currentSlot(now);
+  const form = formStreak(s, mood);
+  const { stage, next } = stageOf(form);
+  const flame = flameOf(form, mood);
 
   if (isLoading) return <div className="h-64" />;
 
@@ -49,19 +56,42 @@ export default function TeethApp() {
 
   return (
     <div className="space-y-8">
-      {/* Molar and what it thinks */}
-      <div className="flex items-center gap-4">
-        <Molar mood={mood} className="h-24 w-24 shrink-0" />
-        <p
-          className={cn(
-            'font-serif text-[1.1875rem] leading-snug',
-            mood === 'angry' || mood === 'furious' ? 'text-bad' : 'text-ink',
-          )}
-          style={{ fontVariationSettings: "'opsz' 24" }}
-          data-testid="molar-line"
-        >
-          {line}
-        </p>
+      {/* Molar, his form, and what he thinks */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Molar stage={stage.id} mood={mood} label={stage.name} className="h-36 w-36 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-2xs font-medium uppercase tracking-[0.12em] text-ink-faint">
+              {stage.name}
+            </p>
+            <p
+              className={cn(
+                'mt-1 font-serif text-[1.1875rem] leading-snug',
+                mood === 'angry' || mood === 'furious' || mood === 'frozen'
+                  ? 'text-bad'
+                  : 'text-ink',
+              )}
+              style={{ fontVariationSettings: "'opsz' 24" }}
+              data-testid="molar-line"
+            >
+              {line}
+            </p>
+          </div>
+        </div>
+        {next && mood !== 'frozen' && (
+          <div className="space-y-1.5">
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className="h-full rounded-full bg-accent"
+                style={{ width: `${((form - stage.from) / (next.from - stage.from)) * 100}%` }}
+              />
+            </div>
+            <p className="text-xs text-ink-muted">
+              {next.from - form === 1 ? '1 more full day' : `${next.from - form} more full days`}{' '}
+              until Molar turns {next.name}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Today */}
@@ -128,7 +158,7 @@ export default function TeethApp() {
 
       {/* Numbers */}
       <div className="grid grid-cols-3 divide-x divide-line border-y border-line py-3 text-center">
-        <Number value={s.streak} label="day streak" flame={s.streak > 0} />
+        <Number value={form} label="day streak" flame={flame} />
         <Number value={s.best} label="best streak" />
         <Number value={s.total} label="brushes" />
       </div>
@@ -139,11 +169,19 @@ export default function TeethApp() {
   );
 }
 
-function Number({ value, label, flame }: { value: number; label: string; flame?: boolean }) {
+function Number({
+  value,
+  label,
+  flame,
+}: {
+  value: number;
+  label: string;
+  flame?: FlameTier | null;
+}) {
   return (
     <div className="px-2">
       <div className="flex items-center justify-center gap-1 font-serif text-[1.625rem] leading-none text-ink">
-        {flame && <Flame className="h-4 w-4 text-warn" strokeWidth={2} aria-hidden />}
+        {flame && <StreakFlame tier={flame} className="-my-1 h-8 w-7" />}
         {value}
       </div>
       <div className="mt-1 text-2xs text-ink-faint">{label}</div>

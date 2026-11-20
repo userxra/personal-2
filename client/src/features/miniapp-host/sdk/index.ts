@@ -3,7 +3,7 @@
  * See client/miniapps/README.md.
  */
 export { defineMiniapp } from './types';
-export type { MiniappDefinition } from './types';
+export type { Glyph, MiniappDefinition, MiniappIconSpec } from './types';
 export { useMiniapp } from './context';
 export { useAppData } from './data';
 export type { AppData } from './data';
