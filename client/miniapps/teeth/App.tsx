@@ -17,6 +17,7 @@ import {
   type BrushData,
   type Slot,
 } from './logic';
+import { isLight, themeVars } from './theme';
 
 const SLOT = {
   m: { label: 'Morning', Icon: Sun },
@@ -36,6 +37,8 @@ export default function TeethApp() {
   const form = formStreak(s, mood);
   const { stage } = stageOf(form);
   const flame = flameOf(form, mood);
+  const look = data.look ?? 'light';
+  const light = isLight(look);
 
   if (isLoading) return <div className="h-64" />;
 
@@ -56,7 +59,11 @@ export default function TeethApp() {
       : [];
 
   return (
-    <div className="space-y-4">
+    // The whole screen, edge to edge, in Brush's own light or dark look.
+    <div
+      style={themeVars(light)}
+      className="-mx-4 -mb-28 min-h-[100dvh] space-y-4 bg-bg px-4 pb-28 text-ink sm:-mx-6 sm:px-6 lg:-mb-16 lg:pb-16"
+    >
       <Hero
         current={STAGES.indexOf(stage)}
         streak={form}
@@ -64,9 +71,12 @@ export default function TeethApp() {
         mood={mood}
         line={line}
         flame={flame}
+        light={light}
+        look={look}
+        onLook={(l) => update((d) => ({ ...d, look: l }))}
       />
 
-      <section className="rounded-[20px] bg-surface p-4">
+      <section className="rounded-[20px] bg-surface p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
         <div className="flex items-baseline justify-between">
           <h2 className="text-base font-bold text-ink">Today</h2>
           <span className="text-xs text-ink-faint">{s.total} brushes logged</span>
@@ -136,7 +146,7 @@ export default function TeethApp() {
       <Badges streak={form} />
 
       {/* The record: two weeks, or every month; tap a day to fix it */}
-      <section className="rounded-[20px] bg-surface p-4">
+      <section className="rounded-[20px] bg-surface p-4 shadow-[0_1px_3px_rgba(16,24,40,0.06)]">
         <History data={data} today={today} firstDay={s.firstDay} update={update} />
       </section>
     </div>

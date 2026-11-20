@@ -39,6 +39,11 @@ export interface MiniappDefinition<T = unknown> {
    * quick, and return the same glyph component for the same picture (keep them in a Map).
    */
   liveIcon?: (data: T, now: Date) => Partial<MiniappIconSpec> | null;
+  /**
+   * Optional: the app's screen fills the page, with no title bar or back link above it. The app
+   * then draws its own top (clearing the phone's status bar with `pt-safe`).
+   */
+  fullScreen?: boolean;
   /** The app's screen. Load it lazily: `lazy(() => import('./App'))`. */
   App: Lazyable<object>;
   /** Optional Home widget (a small card). Load it lazily too. */
