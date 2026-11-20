@@ -572,7 +572,7 @@ function AddWidgetDialog({
           return (
             <section key={k}>
               <div className="flex items-center gap-3">
-                <MiniappIcon {...(app ? app.icon : CLOCK_ICON)} size="sm" />
+                <MiniappIcon {...(app ? app.icon : CLOCK_ICON)} app={app ?? undefined} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink">{name}</p>
                   <p className="text-xs text-ink-faint">

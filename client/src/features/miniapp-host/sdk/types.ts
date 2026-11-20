@@ -5,6 +5,23 @@ type Lazyable<P> = ComponentType<P> | LazyExoticComponent<ComponentType<P>>;
 /** An icon picture: an SVG component taking a class and stroke width (lucide icons fit). */
 export type Glyph = ComponentType<{ className?: string; strokeWidth?: string | number }>;
 
+/** An app's icon. */
+export interface MiniappIconSpec {
+  /** The picture on the icon: an SVG component (a lucide icon works) drawn in `color`. */
+  glyph: Glyph;
+  /** Icon colour (e.g. '#22a38a'); also `var(--icon-bg)` inside a custom glyph. */
+  background: string;
+  /** Optional: a two-colour gradient, top left to bottom right (e.g. ['#5fe0c4', '#14917a']). */
+  gradient?: readonly [string, string];
+  /** Colour of the glyph. Default white. */
+  color?: string;
+  /**
+   * Optional: the glyph is a whole picture drawn edge to edge (and cut to the icon's shape)
+   * instead of a symbol in the middle.
+   */
+  fill?: boolean;
+}
+
 /** What a miniapp declares about itself (its `index.ts` default export). */
 export interface MiniappDefinition<T = unknown> {
   /** Lower-case letters, digits and dashes; the folder name. Never change it: data is kept under it. */
@@ -15,16 +32,13 @@ export interface MiniappDefinition<T = unknown> {
   description: string;
   /** Optional: a few short points for its Store page ("About this app"). */
   about?: string[];
-  icon: {
-    /** The picture on the icon: an SVG component (a lucide icon works) drawn in `color`. */
-    glyph: Glyph;
-    /** Icon colour (e.g. '#22a38a'); also `var(--icon-bg)` inside a custom glyph. */
-    background: string;
-    /** Optional: a two-colour gradient, top left to bottom right (e.g. ['#5fe0c4', '#14917a']). */
-    gradient?: readonly [string, string];
-    /** Colour of the glyph. Default white. */
-    color?: string;
-  };
+  icon: MiniappIconSpec;
+  /**
+   * Optional: an icon that follows the app's data (a mascot's mood, say). Return the parts of
+   * `icon` that change, or null for the usual icon. Runs whenever the icon shows, so keep it
+   * quick, and return the same glyph component for the same picture (keep them in a Map).
+   */
+  liveIcon?: (data: T, now: Date) => Partial<MiniappIconSpec> | null;
   /** The app's screen. Load it lazily: `lazy(() => import('./App'))`. */
   App: Lazyable<object>;
   /** Optional Home widget (a small card). Load it lazily too. */

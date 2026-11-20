@@ -19,7 +19,7 @@ export default function MiniappScreen() {
       </MiniappFrame>
     );
 
-  const icon = <MiniappIcon {...def.icon} size="sm" />;
+  const icon = <MiniappIcon {...def.icon} app={def} size="sm" />;
   if (state.isLoading)
     return (
       <MiniappFrame title={def.name} icon={icon}>

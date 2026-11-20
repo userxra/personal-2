@@ -19,13 +19,16 @@ change.
   widgets come from the framework.
 - Inside, look like the rest of the site, not like a generated app: the site's colour tokens, its
   type (serif for big numbers and titles, sans for the rest), small radii, hairlines rather than
-  boxes, no gradients, glows or glossy effects.
+  boxes, no gradients, glows or glossy effects. The exception is a mascot's own artwork, which
+  may be a detailed illustration with shading, light and effects (Brush's Molar).
 - The icon should look like a real phone app's: a clear, confident colour (or a two-colour
   `gradient`, top left to bottom right) and a large, bold glyph. No shadows or bevels: the
   framework draws the squircle and nothing else. A custom glyph looks best as a filled white
   shape with cut-outs drawn in `var(--icon-bg)` (the icon's colour), like Brush's tooth and the
   built-in Store icon; a white icon with a full-colour picture works too (the Wallpaper icon).
-  See `src/features/miniapp-host/builtins.tsx`. A lucide line icon works but looks plainer.
+  See `src/features/miniapp-host/builtins.tsx`. A lucide line icon works but looks plainer. A
+  mascot app can instead fill the icon with a whole picture (`fill: true`) on one flat colour,
+  like Brush.
 - Keep it simple and small. Style with Tailwind classes and the site's colour tokens (`bg-surface`,
   `border-line`, `text-ink`, `text-ink-muted`, `text-ink-faint`, `text-accent`, `bg-ok/10`,
   `text-bad`…), so it works in dark and light mode. An app may have its own accent colours.
@@ -115,6 +118,7 @@ the `teeth` app does, so the manifest stays small.)
 | `useNow(everyMs?)`                                   | The current time, re-rendering each minute (and when the app comes back to the screen).                                                                    |
 | `dayKey(date?, startHour?)`                          | `YYYY-MM-DD` of a moment. With `startHour` 3, 00:00 to 02:59 still counts as the day before.                                                               |
 | `addDays(key, n)`, `dateOf(key)`                     | Day arithmetic on `YYYY-MM-DD` keys.                                                                                                                       |
+| `Glyph`, `MiniappIconSpec` (types)                   | An icon picture component; the shape of `icon` (and of what `liveIcon` returns).                                                                           |
 | `useToast()`                                         | `toast({ message, tone?: 'error', action?: { label, onClick } })`.                                                                                         |
 | `Button`, `IconButton`, `Card`, `SectionLabel`, `cn` | The site's button and card styles, a section heading, class joining.                                                                                       |
 
@@ -124,6 +128,15 @@ the `teeth` app does, so the manifest stays small.)
 dot), or 0 / false / null for none. It is worked out from the app's saved data whenever the
 miniapps screen shows (folders add up their apps' badges), so keep it quick and pure. Badge only
 what is actually due (Brush: brushes due today and not logged).
+
+## Live icon
+
+`liveIcon(data, now)` (optional) changes the icon with the app's data: return the parts of `icon`
+to change (`glyph`, `background`, ...), or null for the usual icon. It runs wherever the icon
+shows, from the same cached data as the badge, so keep it quick and pure. Return the same glyph
+component for the same picture (create them once and keep them in a `Map`), or the icon remounts
+on every change. `fill: true` draws the glyph as a whole picture, edge to edge, cut to the
+squircle. Brush uses both: Molar's face, in his current form and mood, on that form's colour.
 
 ## Data
 
@@ -152,4 +165,9 @@ what is actually due (Brush: brushes due today and not logged).
 
 - `teeth` (**Brush**): morning and evening brushing, streaks, the last two weeks (tap a day to add
   or remove a forgotten brush), a month calendar behind "Show more" going back to the first log,
-  and Molar the tooth, who gets mad when you skip. Widget; badge for brushes due today.
+  and Molar the tooth. Molar grows with the streak through eight forms (`logic.ts` `STAGES`:
+  Milk Tooth, Little Molar at 1 day, Molar 3, Athlete 7, Blazing 14, Royal 30, Golden 100,
+  Diamond 365) and his face shows today (nine moods, including Worried when a 3+ day streak is at
+  risk late in the evening and Frozen when only yesterday is missing). The streak flame changes
+  colour at 3, 7, 14, 30, 100 and 365 days. The art is SVG built in `art.ts` from constants and
+  shown by `Molar.tsx`. Live icon (form and mood), widget, badge for brushes due today.
