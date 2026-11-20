@@ -60,7 +60,6 @@ export const LOOKS: Record<StageId, Look> = {
 
 const TOOTH =
   'M70 48C52 48 40 62 40 82C40 104 46 120 52 134C56 146 58 160 62 172C64 180 76 182 80 174C84 164 88 152 100 152C112 152 116 164 120 174C124 182 136 180 138 172C142 160 144 146 148 134C154 120 160 104 160 82C160 62 148 48 130 48C118 48 112 56 100 56C88 56 82 48 70 48Z';
-const INK = '#232a3a';
 
 /** The box a full character is drawn in, with room for flames and crowns. */
 export const VIEWBOX = '-8 -18 216 216';
@@ -263,52 +262,6 @@ export function molarMarkup(
       [0.5, aoC, 0],
       [1, aoC, 0.26],
     ]),
-  );
-  defs.push(
-    radial(
-      `${P}-scl`,
-      0.42,
-      0.36,
-      0.7,
-      [
-        [0, '#ffffff'],
-        [0.7, '#f3f6fa'],
-        [1, '#d3dbe7'],
-      ],
-      false,
-    ),
-  );
-  defs.push(
-    radial(
-      `${P}-iris`,
-      0.42,
-      0.38,
-      0.62,
-      [
-        [0, '#c08a5c'],
-        [0.5, '#7a4a2c'],
-        [1, '#3e2216'],
-      ],
-      false,
-    ),
-  );
-  defs.push(
-    radial(
-      `${P}-pup`,
-      0.4,
-      0.35,
-      0.75,
-      [
-        [0, '#4b5876'],
-        [1, '#111724'],
-      ],
-      false,
-    ),
-  );
-  const ex = baby ? 13.5 : 12.5;
-  const ey = baby ? 15.5 : 14;
-  defs.push(
-    `<clipPath id="${P}-el"><ellipse cx="80" cy="96" rx="${ex}" ry="${ey}"/></clipPath><clipPath id="${P}-er"><ellipse cx="120" cy="96" rx="${ex}" ry="${ey}"/></clipPath>`,
   );
 
   // ---------- Scenery (not on the icon or an outline) ----------
@@ -591,7 +544,7 @@ export function molarMarkup(
     `<path d="${TOOTH}" fill="none" stroke="${mat === 'gold' ? '#e69500' : '#2b3c5c'}" stroke-opacity="${mat === 'gold' ? 0.45 : 0.28}" stroke-width="1.6"/>`,
   );
 
-  body.push(face(P, mood, baby, mat === 'gold'));
+  body.push(face(P, mood, baby, mat));
 
   // ---------- In front ----------
   if (S.sport) {
@@ -602,7 +555,7 @@ export function molarMarkup(
       ]),
     );
     after.push(
-      `<g clip-path="url(#${P}-c)"><path d="M36 72Q100 52 164 72L164 84Q100 64 36 84Z" fill="url(#${P}-band)"/><path d="M36 77.5Q100 57.5 164 77.5" stroke="#fff" stroke-width="2.2" fill="none" opacity=".9"/></g><path d="M156 74q14 2 18 12q-10 -2 -16 -4zM156 78q10 8 8 20q-6 -8 -10 -14z" fill="url(#${P}-band)"/>`,
+      `<g clip-path="url(#${P}-c)"><path d="M36 54Q100 34 164 54L164 65Q100 45 36 65Z" fill="url(#${P}-band)"/><path d="M36 59Q100 39 164 59" stroke="#fff" stroke-width="2.2" fill="none" opacity=".9"/></g><path d="M156 55q14 2 18 12q-10 -2 -16 -4zM156 59q10 8 8 20q-6 -8 -10 -14z" fill="url(#${P}-band)"/>`,
     );
     if (!icon) {
       after.push(
@@ -666,7 +619,7 @@ export function molarMarkup(
   }
   if (mood === 'angry' || mood === 'furious') {
     after.push(
-      `<g transform="translate(142 66)" stroke="#e8394a" stroke-width="3.2" stroke-linecap="round" fill="none">${[0, 90, 180, 270].map((a) => `<path d="M-8 -2.5Q-2.5 -2.5 -2.5 -8" transform="rotate(${a})"/>`).join('')}</g>`,
+      `<g transform="translate(152 54)" stroke="#e8394a" stroke-width="3.2" stroke-linecap="round" fill="none">${[0, 90, 180, 270].map((a) => `<path d="M-8 -2.5Q-2.5 -2.5 -2.5 -8" transform="rotate(${a})"/>`).join('')}</g>`,
     );
     if (!icon && mood === 'furious')
       after.push(
@@ -788,58 +741,163 @@ function facets(P: string): string {
   return `<g clip-path="url(#${P}-c)">${tris}<g stroke="#ffffff" stroke-opacity=".55" stroke-width=".8" fill="none">${lines}</g></g>`;
 }
 
-function face(P: string, mood: Mood, baby: boolean, gold: boolean): string {
-  const s = (w = 4.2) =>
-    `stroke="${INK}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" fill="none"`;
-  // Natural eyes: a white with a large warm-brown iris, a dark pupil and a bright catch-light,
-  // an eyelid line along the top, and soft brows.
-  const rx = baby ? 13.5 : 12.5;
-  const ry = baby ? 15.5 : 14;
-  const ir = baby ? 10 : 9;
-  const pu = baby ? 4.8 : 4;
-  const eye = (cx: number, px = 0, py = 0) => {
-    const clip = cx < 100 ? 'el' : 'er';
-    const x = cx + px;
-    const y = 97 + py;
+/**
+ * Molar's face, drawn like a modern mascot's (studied from TikTok's streak pets): two big eyes
+ * almost touching, a large textured iris with a big pupil and one round catch-light, no black
+ * outlines (the white has a soft rim a shade darker than the body), thick tapered brows in a
+ * dark tone of the body, body-coloured lids with a dark edge for sleepy or cross looks, and soft
+ * dark mouths.
+ */
+function face(
+  P: string,
+  mood: Mood,
+  baby: boolean,
+  mat: 'enamel' | 'milk' | 'gold' | 'diamond',
+): string {
+  const gold = mat === 'gold';
+  const crystal = mat === 'diamond';
+  const tone = gold ? '#8a4a0a' : crystal ? '#2f4f96' : mat === 'milk' ? '#5a4436' : '#46394a';
+  const rim = gold ? '#e3920e' : crystal ? '#86afe0' : mat === 'milk' ? '#dcc8a6' : '#b7c3d6';
+  const irisStops: readonly Stop[] = gold
+    ? [
+        [0, '#5c2c06'],
+        [0.5, '#a8601a'],
+        [1, '#f6b84e'],
+      ]
+    : crystal
+      ? [
+          [0, '#14306e'],
+          [0.5, '#2f63c8'],
+          [1, '#93c8ff'],
+        ]
+      : [
+          [0, '#3a1806'],
+          [0.5, '#7e3c12'],
+          [1, '#e08a34'],
+        ];
+  const pupilC = crystal ? '#0e1d44' : '#1f0e06';
+  // A lid has its own soft, slightly shaded tone, so it reads as a lid even on a white tooth.
+  const lidStops: readonly Stop[] = gold
+    ? [
+        [0, '#ffe27a'],
+        [1, '#f2a91a'],
+      ]
+    : crystal
+      ? [
+          [0, '#e6f2ff'],
+          [1, '#b4cdee'],
+        ]
+      : mat === 'milk'
+        ? [
+            [0, '#fbf3e6'],
+            [1, '#e2d0b2'],
+          ]
+        : [
+            [0, '#f1f4f9'],
+            [1, '#cdd6e3'],
+          ];
+
+  // Eye geometry: big, nearly touching.
+  const L = 81.5;
+  const R = 118.5;
+  const Y = 95;
+  const rx = baby ? 19 : 18;
+  const ry = baby ? 22 : 20.5;
+  const ir = rx * 0.8;
+  const pu = ir * 0.56;
+
+  const defs =
+    `<defs>` +
+    radial(
+      `${P}-scl2`,
+      0.5,
+      0.6,
+      0.62,
+      [
+        [0, '#ffffff'],
+        [0.74, '#ffffff'],
+        [0.92, rim, 0.55],
+        [1, rim],
+      ],
+      false,
+    ) +
+    linear(`${P}-iris2`, 0, 0, 0, 1, irisStops) +
+    linear(`${P}-lidg`, 0, 0, 0, 1, lidStops) +
+    `<clipPath id="${P}-sl"><ellipse cx="${L}" cy="${Y}" rx="${rx}" ry="${ry}"/></clipPath>` +
+    `<clipPath id="${P}-sr"><ellipse cx="${R}" cy="${Y}" rx="${rx}" ry="${ry}"/></clipPath>` +
+    `</defs>`;
+
+  /** An open eye looking towards (lx, ly), each -1..1. */
+  const eye = (cx: number, lx = 0, ly = 0) => {
+    const clip = `url(#${P}-s${cx < 100 ? 'l' : 'r'})`;
+    const ix = f1(cx + lx * (rx - ir - 0.5));
+    const iy = f1(Y + ly * (ry - ir - 0.5));
+    let rays = '';
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * Math.PI * 2;
+      rays += `M${f1(ix + Math.cos(a) * pu * 1.08)} ${f1(iy + Math.sin(a) * pu * 1.08)}L${f1(ix + Math.cos(a) * ir * 0.9)} ${f1(iy + Math.sin(a) * ir * 0.9)}`;
+    }
     return (
-      `<ellipse cx="${cx}" cy="96" rx="${rx}" ry="${ry}" fill="url(#${P}-scl)"/>` +
-      `<g clip-path="url(#${P}-${clip})"><circle cx="${x}" cy="${y}" r="${ir}" fill="url(#${P}-iris)"/><circle cx="${x}" cy="${y}" r="${ir}" fill="none" stroke="#2a160e" stroke-width="1" opacity=".55"/><circle cx="${x}" cy="${y}" r="${pu}" fill="#140b08"/><ellipse cx="${cx}" cy="${96 - ry + 2}" rx="${rx}" ry="5" fill="#2a1a14" opacity=".14" filter="url(#${P}-b2)"/></g>` +
-      `<circle cx="${f1(x + 2.6)}" cy="${f1(y - 3.2)}" r="${baby ? 3.2 : 2.7}" fill="#fff"/><circle cx="${f1(x - 2.8)}" cy="${f1(y + 3)}" r="1.2" fill="#fff" opacity=".8"/>` +
-      `<path d="M${cx - rx - 0.5} 97Q${cx} ${f1(96 - ry * 1.95)} ${cx + rx + 0.5} 97" stroke="${INK}" stroke-width="2.8" stroke-linecap="round" fill="none"/>`
+      `<ellipse cx="${cx}" cy="${Y}" rx="${rx}" ry="${ry}" fill="url(#${P}-scl2)"/>` +
+      `<g clip-path="${clip}">` +
+      `<circle cx="${ix}" cy="${iy}" r="${f1(ir)}" fill="url(#${P}-iris2)"/>` +
+      `<path d="${rays}" stroke="${crystal ? '#cfe6ff' : '#ffc27a'}" stroke-width="1.1" opacity=".4"/>` +
+      `<circle cx="${ix}" cy="${iy}" r="${f1(ir - 0.6)}" fill="none" stroke="${pupilC}" stroke-width="1.2" opacity=".55"/>` +
+      `<circle cx="${ix}" cy="${iy}" r="${f1(pu)}" fill="${pupilC}"/>` +
+      `<ellipse cx="${cx}" cy="${f1(Y - ry + 3)}" rx="${rx}" ry="7" fill="${tone}" opacity=".16" filter="url(#${P}-b2)"/>` +
+      `</g>` +
+      `<circle cx="${f1(ix - ir * 0.36)}" cy="${f1(iy - ir * 0.4)}" r="${f1(ir * 0.27)}" fill="#ffffff"/>` +
+      `<ellipse cx="${cx}" cy="${Y}" rx="${rx}" ry="${ry}" fill="none" stroke="${rim}" stroke-width="1" opacity=".6"/>`
     );
   };
-  const brows = (lift = 0) =>
-    `<path d="M70 ${76 - lift}Q80 ${70 - lift} 90 ${75 - lift}M110 ${75 - lift}Q120 ${70 - lift} 130 ${76 - lift}" stroke="#3a2a26" stroke-width="3.8" stroke-linecap="round" fill="none"/>`;
-  const lid = (clip: 'el' | 'er', cx: number, yl: number, yr: number) =>
-    `<g clip-path="url(#${P}-${clip})"><path d="M${cx - 16} 74H${cx + 16}V${96 + yr}L${cx - 16} ${96 + yl}Z" fill="url(#${P}-body)"/><path d="M${cx - 16} ${96 + yl}L${cx + 16} ${96 + yr}" stroke="${INK}" stroke-width="3"/></g>`;
-  const open = (px = 0, py = 0) => eye(80, px, py) + eye(120, px, py);
-  const eyes: Record<Mood, string> = {
-    hello: open(1, 0) + brows(1),
-    happy: `<path d="M70 99Q80 87 90 99M110 99Q120 87 130 99" ${s(4.6)}/>` + brows(2),
-    frozen: `<path d="M70 95Q80 101 90 95M110 95Q120 101 130 95" ${s(4.6)}/>`,
-    content: open(2, -1.5) + brows(0),
-    waiting:
-      open(0, 2) +
-      lid('el', 80, -3, -3) +
-      lid('er', 120, -3, -3) +
-      `<path d="M70 76Q80 74 90 76M110 76Q120 74 130 76" stroke="#3a2a26" stroke-width="3.8" stroke-linecap="round" fill="none"/>`,
-    annoyed:
-      open(4, 4) +
-      lid('el', 80, 1, 1) +
-      lid('er', 120, 1, 1) +
-      `<path d="M68 76L90 78M110 78L132 76" ${s(4)}/>`,
-    worried: open(0, -1) + `<path d="M68 80L90 74M132 80L110 74" ${s(4.2)}/>`,
-    angry:
-      open(0, 2) +
-      lid('el', 80, -12, -3) +
-      lid('er', 120, -3, -12) +
-      `<path d="M66 72L91 81M134 72L109 81" ${s(5)}/>`,
-    furious:
-      open(0, 3) +
-      lid('el', 80, -10, 2) +
-      lid('er', 120, 2, -10) +
-      `<path d="M64 70L92 82M136 70L108 82" ${s(5.4)}/>`,
+  const both = (lx = 0, ly = 0) => eye(L, lx, ly) + eye(R, lx, ly);
+
+  /** A lid, the body's own colour, down to a line from (left edge, yl) to (right edge, yr). */
+  const lid = (cx: number, yl: number, yr: number) => {
+    const clip = `url(#${P}-s${cx < 100 ? 'l' : 'r'})`;
+    const x0 = cx - rx - 1;
+    const x1 = cx + rx + 1;
+    const mid = (yl + yr) / 2 + 1.5;
+    const edge = `M${f1(x0)} ${f1(Y + yl)}Q${cx} ${f1(Y + mid)} ${f1(x1)} ${f1(Y + yr)}`;
+    return (
+      `<g clip-path="${clip}">` +
+      `<path d="${edge}L${f1(x1)} ${Y - ry - 2}L${f1(x0)} ${Y - ry - 2}Z" fill="url(#${P}-lidg)"/>` +
+      `<path d="${edge}" stroke="${tone}" stroke-width="5" opacity=".18" fill="none" transform="translate(0 2.5)" filter="url(#${P}-b1)"/>` +
+      `<path d="${edge}" stroke="${tone}" stroke-width="3.6" stroke-linecap="round" fill="none"/>` +
+      `</g>` +
+      `<ellipse cx="${cx}" cy="${Y}" rx="${rx}" ry="${ry}" fill="none" stroke="${rim}" stroke-width="1" opacity=".6"/>`
+    );
   };
+  const lids = (yl: number, yr: number) => lid(L, yl, yr) + lid(R, yr, yl);
+
+  /** A thick brow, tapered at both ends, over the left eye; mirrored for the right one. */
+  const brow = (x1: number, y1: number, cx: number, cy: number, x2: number, y2: number, th = 5) => {
+    const one = (m: (x: number) => number) =>
+      `<path d="M${m(x1)} ${y1}Q${m(cx)} ${cy} ${m(x2)} ${y2}Q${m(cx)} ${cy + th * 2} ${m(x1)} ${y1}Z" fill="${tone}" stroke="${tone}" stroke-width="1.4" stroke-linejoin="round"/>`;
+    return one((x) => x) + one((x) => 200 - x);
+  };
+
+  /** Closed eyes: a thick tapered arch (happy) or a dip (frozen). */
+  const closed = (up: boolean) => {
+    const one = (cx: number) =>
+      up
+        ? `<path d="M${cx - 14} ${Y + 4}Q${cx} ${Y - 14} ${cx + 14} ${Y + 4}Q${cx} ${Y - 4} ${cx - 14} ${Y + 4}Z" fill="${tone}" stroke="${tone}" stroke-width="1.6" stroke-linejoin="round"/>`
+        : `<path d="M${cx - 13} ${Y}Q${cx} ${Y + 11} ${cx + 13} ${Y}Q${cx} ${Y + 5} ${cx - 13} ${Y}Z" fill="${tone}" stroke="${tone}" stroke-width="1.6" stroke-linejoin="round"/>`;
+    return one(L) + one(R);
+  };
+
+  const eyes: Record<Mood, string> = {
+    hello: both(0.1, -0.35) + brow(67, 68, 80, 55, 93, 65, 7),
+    content: both(0.3, -0.4) + brow(67, 69, 80, 58, 93, 67, 6.5),
+    happy: both(0.15, -0.45) + brow(67, 66, 80, 53, 93, 63, 7),
+    waiting: both(0, 0.3) + lids(-6, -6) + brow(66, 68, 80, 64, 94, 68, 6),
+    annoyed: both(0.85, 0.35) + lids(-1, 1) + brow(66, 66, 80, 63, 95, 70, 6),
+    worried: both(0, -0.3) + brow(66, 70, 81, 62, 94, 59, 6),
+    frozen: closed(false) + brow(67, 68, 80, 62, 93, 66, 5.5),
+    angry: both(0, 0.35) + lids(-14, -3) + brow(64, 60, 80, 61, 96, 72, 7),
+    furious: both(0, 0.45) + lids(-11, 0) + brow(63, 56, 79, 57, 97, 73, 7.5),
+  };
+
   const showBlush =
     mood === 'happy' ||
     mood === 'hello' ||
@@ -847,31 +905,34 @@ function face(P: string, mood: Mood, baby: boolean, gold: boolean): string {
     (baby && mood !== 'angry' && mood !== 'furious' && mood !== 'frozen');
   const bc = gold ? '#ff6a4d' : '#ff8fa8';
   const blush = showBlush
-    ? `<ellipse cx="66" cy="117" rx="9" ry="5.5" fill="${bc}" opacity=".55" filter="url(#${P}-b3)"/><ellipse cx="134" cy="117" rx="9" ry="5.5" fill="${bc}" opacity=".55" filter="url(#${P}-b3)"/>`
+    ? `<ellipse cx="58" cy="123" rx="9" ry="5.5" fill="${bc}" opacity=".5" filter="url(#${P}-b3)"/><ellipse cx="142" cy="123" rx="9" ry="5.5" fill="${bc}" opacity=".5" filter="url(#${P}-b3)"/>`
     : '';
+
+  const line = (d: string, w = 4) =>
+    `<path d="${d}" stroke="${tone}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`;
   const openMouth = (d: string, inside: string) =>
-    `<defs><clipPath id="${P}-mo"><path d="${d}"/></clipPath></defs><path d="${d}" fill="#6e1e30"/><g clip-path="url(#${P}-mo)">${inside}</g><path d="${d}" ${s(3)}/>`;
+    `<defs><clipPath id="${P}-mo"><path d="${d}"/></clipPath></defs><path d="${d}" fill="#8e2236"/><g clip-path="url(#${P}-mo)">${inside}</g><path d="${d}" stroke="#5e1222" stroke-width="1.6" stroke-linejoin="round" fill="none"/>`;
   const mouths: Record<Mood, string> = {
     happy: openMouth(
-      'M82 114Q100 142 118 114Q100 121 82 114Z',
-      '<ellipse cx="100" cy="132" rx="10" ry="6" fill="#ff7e93"/>',
+      'M76 122Q100 158 124 122Q100 129 76 122Z',
+      '<ellipse cx="100" cy="140" rx="13" ry="7.5" fill="#ff8a96"/>',
     ),
     hello: openMouth(
-      'M89 117Q100 132 111 117Q100 121 89 117Z',
-      '<ellipse cx="100" cy="128" rx="6" ry="4" fill="#ff7e93"/>',
+      'M88 124Q100 140 112 124Q100 128 88 124Z',
+      '<ellipse cx="100" cy="133" rx="7" ry="4" fill="#ff8a96"/>',
     ),
-    content: `<path d="M87 118Q100 130 113 118" ${s()}/>`,
-    waiting: `<path d="M91 123H109" ${s()}/>`,
-    annoyed: `<path d="M88 125Q94 120 100 123T112 122" ${s()}/>`,
-    worried: `<path d="M86 125q3.5-4 7 0t7 0t7 0t7 0" ${s(3.6)}/>`,
-    frozen: `<rect x="85" y="116" width="30" height="13" rx="4" fill="#ffffff" stroke="${INK}" stroke-width="3"/><path d="M85 122.5H115M92.5 116V129M100 116V129M107.5 116V129" stroke="${INK}" stroke-width="1.8"/>`,
-    angry: `<path d="M86 128Q100 116 114 128" ${s(4.6)}/>`,
+    content: line('M86 125Q100 137 114 125'),
+    waiting: line('M92 128H108'),
+    annoyed: line('M88 130Q96 125 102 128T114 126'),
+    worried: line('M86 130q3.5-4 7 0t7 0t7 0t7 0', 3.6),
+    frozen: `<rect x="85" y="121" width="30" height="13" rx="4" fill="#ffffff" stroke="${tone}" stroke-width="2.6"/><path d="M85 127.5H115M92.5 121V134M100 121V134M107.5 121V134" stroke="${tone}" stroke-width="1.6"/>`,
+    angry: line('M86 134Q100 123 114 134', 4.4),
     furious: openMouth(
-      'M82 132Q100 104 118 132Z',
-      '<rect x="80" y="113" width="40" height="5" fill="#ffffff"/><ellipse cx="100" cy="134" rx="10" ry="6" fill="#ff7e93"/>',
+      'M82 138Q100 112 118 138Z',
+      '<rect x="80" y="117" width="40" height="5" fill="#ffffff"/><ellipse cx="100" cy="140" rx="10" ry="6" fill="#ff8a96"/>',
     ),
   };
-  return eyes[mood] + blush + mouths[mood];
+  return defs + eyes[mood] + blush + mouths[mood];
 }
 
 const CROWN_SHAPE =
@@ -912,7 +973,7 @@ function crown(P: string): string {
       [1, '#0d2a80'],
     ],
     false,
-  )}</defs><g transform="rotate(-6 100 50)"><path d="${CROWN_SHAPE}" fill="url(#${P}-cr)" stroke="#d97706" stroke-width="1.4" stroke-linejoin="round"/><path d="M72 52Q100 58 128 52L128 62Q100 68 72 62Z" fill="#f29a0e" opacity=".55"/>${tips.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.6" fill="#ffe27a" stroke="#d97706" stroke-width="1"/><circle cx="${x - 1}" cy="${y - 1.2}" r="1.1" fill="#fff"/>`).join('')}<ellipse cx="100" cy="59" rx="6" ry="4.6" fill="url(#${P}-ruby)"/><circle cx="85" cy="58" r="3.4" fill="url(#${P}-saph)"/><circle cx="115" cy="58" r="3.4" fill="url(#${P}-saph)"/><circle cx="98" cy="57.5" r="1.4" fill="#fff"/><path d="M78 46l5-18" stroke="#fffbe8" stroke-width="2.2" stroke-linecap="round" opacity=".9"/></g>`;
+  )}</defs><g transform="translate(0 -6) rotate(-6 100 50)"><path d="${CROWN_SHAPE}" fill="url(#${P}-cr)" stroke="#d97706" stroke-width="1.4" stroke-linejoin="round"/><path d="M72 52Q100 58 128 52L128 62Q100 68 72 62Z" fill="#f29a0e" opacity=".55"/>${tips.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="3.6" fill="#ffe27a" stroke="#d97706" stroke-width="1"/><circle cx="${x - 1}" cy="${y - 1.2}" r="1.1" fill="#fff"/>`).join('')}<ellipse cx="100" cy="59" rx="6" ry="4.6" fill="url(#${P}-ruby)"/><circle cx="85" cy="58" r="3.4" fill="url(#${P}-saph)"/><circle cx="115" cy="58" r="3.4" fill="url(#${P}-saph)"/><circle cx="98" cy="57.5" r="1.4" fill="#fff"/><path d="M78 46l5-18" stroke="#fffbe8" stroke-width="2.2" stroke-linecap="round" opacity=".9"/></g>`;
 }
 
 /** A green victory wreath: two branches from the temples meeting at the top of his head. */
@@ -921,9 +982,9 @@ function laurel(P: string): string {
     `<g transform="translate(${f1(x)} ${f1(y)}) rotate(${f1(deg)})"><path d="M0 0Q${f1(len / 2)} -${f1(len * 0.36)} ${len} 0Q${f1(len / 2)} ${f1(len * 0.36)} 0 0Z" fill="url(#${P}-lf)"/><path d="M1.5 0H${f1(len - 2)}" stroke="#bff0b0" stroke-width=".9" opacity=".8"/></g>`;
   let out = '';
   for (const side of [-1, 1]) {
-    const p0 = [100 + side * 57, 90] as const;
-    const c = [100 + side * 50, 54] as const;
-    const p1 = [100 + side * 8, 48] as const;
+    const p0 = [100 + side * 58, 82] as const;
+    const c = [100 + side * 50, 44] as const;
+    const p1 = [100 + side * 8, 42] as const;
     const pt = (t: number): [number, number] => [
       (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * c[0] + t * t * p1[0],
       (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * c[1] + t * t * p1[1],
@@ -953,5 +1014,5 @@ function tiara(P: string): string {
     [0.45, '#bfeaff'],
     [0.7, '#7cc9ff'],
     [1, '#e8d6ff'],
-  ])}</defs><g transform="rotate(-6 100 50)"><path d="${CROWN_SHAPE}" fill="url(#${P}-ic)" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/><path d="M72 52L100 10L128 52M85 19L93 38M115 19L107 38M69 26L79 42M131 26L121 42" stroke="#ffffff" stroke-width="1" opacity=".8" fill="none"/><path d="M93 59L100 51L107 59L100 66Z" fill="#ffffff" stroke="#7cc9ff" stroke-width="1"/>${sparkle(100, 10, 6, '#ffffff')}${sparkle(131, 26, 4, '#ffffff')}</g>`;
+  ])}</defs><g transform="translate(0 -6) rotate(-6 100 50)"><path d="${CROWN_SHAPE}" fill="url(#${P}-ic)" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/><path d="M72 52L100 10L128 52M85 19L93 38M115 19L107 38M69 26L79 42M131 26L121 42" stroke="#ffffff" stroke-width="1" opacity=".8" fill="none"/><path d="M93 59L100 51L107 59L100 66Z" fill="#ffffff" stroke="#7cc9ff" stroke-width="1"/>${sparkle(100, 10, 6, '#ffffff')}${sparkle(131, 26, 4, '#ffffff')}</g>`;
 }
