@@ -170,4 +170,4 @@ squircle. Brush uses both: Molar's face, in his current form and mood, on that f
   Diamond 365) and his face shows today (nine moods, including Worried when a 3+ day streak is at
   risk late in the evening and Frozen when only yesterday is missing). The streak flame changes
   colour at 3, 7, 14, 30, 100 and 365 days. The art is SVG built in `art.ts` from constants and
-  shown by `Molar.tsx`. Live icon (form and mood), widget, badge for brushes due today.
+  shown by `Molar.tsx`. The screen opens on a hero (`Hero.tsx`): the streak in big numbers over the current form's colour, and every form in a row to swipe through, forms not reached shown only as an outline; below it, cards for today, the streak badges (`Badges.tsx`, flames not reached greyed out) and the history. Live icon (form and mood), widget, badge for brushes due today.
