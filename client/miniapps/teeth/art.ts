@@ -218,9 +218,16 @@ const GOLD: readonly Stop[] = [
 
 /**
  * Molar: inner SVG markup for a 200 x 200 box (show it with `VIEWBOX`, or `iconViewBox` for
- * the icon). `icon` leaves out the scenery and draws him full size.
+ * the icon). `icon` leaves out the scenery and draws him full size; `ghost` draws a form not
+ * reached yet: only its outline, no scenery.
  */
-export function molarMarkup(stage: StageId, mood: Mood, P: string, icon = false): string {
+export function molarMarkup(
+  stage: StageId,
+  mood: Mood,
+  P: string,
+  icon = false,
+  ghost = false,
+): string {
   const S = LOOKS[stage];
   const mat = S.mat ?? 'enamel';
   const baby = !!S.baby;
@@ -290,8 +297,8 @@ export function molarMarkup(stage: StageId, mood: Mood, P: string, icon = false)
     `<clipPath id="${P}-el"><ellipse cx="80" cy="96" rx="${ex}" ry="${ey}"/></clipPath><clipPath id="${P}-er"><ellipse cx="120" cy="96" rx="${ex}" ry="${ey}"/></clipPath>`,
   );
 
-  // ---------- Scenery (not on the icon) ----------
-  if (!icon) {
+  // ---------- Scenery (not on the icon or an outline) ----------
+  if (!icon && !ghost) {
     defs.push(
       radial(`${P}-glow`, 100, 104, 96, [
         [0, S.glow, 0.45],
@@ -709,7 +716,10 @@ export function molarMarkup(stage: StageId, mood: Mood, P: string, icon = false)
   const sc = icon ? 1 : (S.scale ?? 1);
   if (sc !== 1)
     char = `<g transform="translate(100 186) scale(${sc}) translate(-100 -186)">${char}</g>`;
-  return `<defs>${defs.join('')}</defs>${back.join('')}${under.join('')}${char}${foam}`;
+  const all = `<defs>${defs.join('')}</defs>${back.join('')}${under.join('')}${char}${foam}`;
+  if (!ghost) return all;
+  // The outline: the shape grown a little, minus the shape, in the text colour; a faint fill.
+  return `<defs><filter id="${P}-ghost" x="-10%" y="-10%" width="120%" height="120%"><feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="grown"/><feComposite in="grown" in2="SourceAlpha" operator="out" result="edge"/><feFlood flood-color="currentColor" flood-opacity=".6"/><feComposite in2="edge" operator="in" result="line"/><feFlood flood-color="currentColor" flood-opacity=".07"/><feComposite in2="SourceAlpha" operator="in" result="fill"/><feMerge><feMergeNode in="fill"/><feMergeNode in="line"/></feMerge></filter></defs><g filter="url(#${P}-ghost)">${all}</g>`;
 }
 
 /** The crystal body: a mesh of small triangles in blues with a few pinks, lit from the top left. */

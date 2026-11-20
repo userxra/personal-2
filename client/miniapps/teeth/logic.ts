@@ -197,6 +197,16 @@ export function stageOf(streak: number) {
   return { stage: STAGES[i]!, next: STAGES[i + 1] ?? null };
 }
 
+/** The streak badges: each flame and the full days in a row it takes. */
+export const BADGES: readonly { tier: FlameTier; from: number }[] = [
+  { tier: 'spark', from: 3 },
+  { tier: 'orange', from: 7 },
+  { tier: 'red', from: 14 },
+  { tier: 'magenta', from: 30 },
+  { tier: 'gold', from: 100 },
+  { tier: 'crystal', from: 365 },
+];
+
 /**
  * The flame by the streak number, from day 3: yellow, orange, red, magenta, then gold at 100
  * and crystal at 365. Grey while today is at risk, frost while frozen, none below 3 days.

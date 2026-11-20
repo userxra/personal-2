@@ -23,24 +23,29 @@ export function Molar({
   stage,
   mood,
   label,
+  ghost,
   className,
 }: {
   stage: StageId;
   mood: Mood;
   label?: string;
+  /** Not reached yet: only his outline. */
+  ghost?: boolean;
   className?: string;
 }) {
   const P = useIdPrefix();
   const html = useMemo(
-    () => `<style>${STYLE}</style>${molarMarkup(stage, mood, P)}`,
-    [stage, mood, P],
+    () => `<style>${STYLE}</style>${molarMarkup(stage, mood, P, false, ghost)}`,
+    [stage, mood, P, ghost],
   );
   return (
     <svg
       viewBox={VIEWBOX}
       className={cn((mood === 'angry' || mood === 'furious') && 'molar-shake', className)}
       role="img"
-      aria-label={`${label ?? 'Molar'} looks ${mood}`}
+      aria-label={
+        ghost ? `${label ?? 'Molar'}, not reached yet` : `${label ?? 'Molar'} looks ${mood}`
+      }
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
