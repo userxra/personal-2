@@ -22,7 +22,9 @@ export default function SpeedWidget() {
           : t.today === 0
             ? 'Nothing typed today yet.'
             : `${t.today} ${t.today === 1 ? 'run' : 'runs'} today`}
-        {t.count > 0 && <span className="block text-xs">Recent average {Math.round(t.avg10)} wpm</span>}
+        {t.count > 0 && (
+          <span className="block text-xs">Recent average {Math.round(t.avg10)} wpm</span>
+        )}
       </div>
     </button>
   );
