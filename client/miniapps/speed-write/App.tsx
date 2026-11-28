@@ -328,15 +328,16 @@ function Run({
 
       <div
         className={cn(
-          'relative rounded border bg-surface transition-colors duration-200',
+          'relative cursor-text rounded border bg-surface transition-colors duration-200',
           focused ? 'border-accent/60' : 'border-line',
           done && 'border-ok/50',
         )}
+        onClick={() => input.current?.focus({ preventScroll: true })}
       >
         <div
           ref={box}
           className={cn(
-            'relative h-44 overflow-hidden px-4 py-3 font-mono text-[1.0625rem] leading-8 transition-[filter,opacity] duration-200 sm:h-56 sm:px-6 sm:py-5 sm:text-[1.3125rem] sm:leading-[2.6rem] lg:h-64 lg:text-[1.5rem] lg:leading-[3rem]',
+            'relative h-44 overflow-y-auto overscroll-contain [scrollbar-width:thin] px-4 py-3 font-mono text-[1.0625rem] leading-8 transition-[filter,opacity] duration-200 sm:h-56 sm:px-6 sm:py-5 sm:text-[1.3125rem] sm:leading-[2.6rem] lg:h-64 lg:text-[1.5rem] lg:leading-[3rem]',
             !focused && !done && 'opacity-60 blur-[1.5px]',
           )}
         >
@@ -368,7 +369,7 @@ function Run({
           autoComplete="off"
           spellCheck={false}
           enterKeyHint="done"
-          className="absolute inset-0 h-full w-full cursor-text opacity-0"
+          className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
         />
       </div>
 
