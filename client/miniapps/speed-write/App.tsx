@@ -1,15 +1,21 @@
 import { memo, useEffect, useRef, useState } from 'react';
-import { Check, CornerDownLeft, RotateCcw, Trophy } from 'lucide-react';
-import { cn, dayKey, SectionLabel, useAppData } from '@miniapp/sdk';
+import { CornerDownLeft, RotateCcw, Trophy } from 'lucide-react';
+import { cn, useAppData, useToast } from '@miniapp/sdk';
+import { getDevice, useDevice } from './device';
+import { RunsPage } from './Runs';
+import { Stats } from './Stats';
 import {
   addSession,
+  deleteSession,
+  inFilter,
+  restoreSession,
+  type Filter,
   fmtTime,
   generate,
   INITIAL,
   LENGTHS,
   liveWpm,
   result as makeResult,
-  totals,
   type Session,
   type Settings,
   type SpeedData,
@@ -46,6 +52,20 @@ function Loaded({
   const settings: Settings = { ...INITIAL.settings, ...data.settings };
   const [run, setRun] = useState<RunState>(() => ({ id: 0, target: generate(settings) }));
   const best = data.sessions.reduce((m, s) => Math.max(m, s.wpm), 0);
+  const toast = useToast();
+  const device = useDevice();
+  const [view, setView] = useState<'main' | 'all'>('main');
+  // Start on this device's own stats when it has any runs, else on everything.
+  const [filter, setFilter] = useState<Filter>(() =>
+    inFilter(data.sessions, getDevice()).length ? getDevice() : 'all',
+  );
+  const remove = (s: Session) => {
+    update((d) => deleteSession(d, s.t));
+    toast({
+      message: 'Run deleted',
+      action: { label: 'Undo', onClick: () => update((d) => restoreSession(d, s)) },
+    });
+  };
 
   const next = (s: Settings = settings) => setRun((r) => ({ id: r.id + 1, target: generate(s) }));
   const retry = () => setRun((r) => ({ ...r, id: r.id + 1 }));
@@ -55,6 +75,19 @@ function Loaded({
     next(s);
   };
 
+  if (view === 'all')
+    return (
+      <>
+        <style>{STYLE}</style>
+        <RunsPage
+          runs={inFilter(data.sessions, filter)}
+          limit={30}
+          onBack={() => setView('main')}
+          onDelete={remove}
+        />
+      </>
+    );
+
   return (
     <div className="space-y-6 pb-6">
       <style>{STYLE}</style>
@@ -63,11 +96,17 @@ function Loaded({
         key={run.id}
         target={run.target}
         best={best}
-        onFinish={(s) => update((d) => addSession(d, s))}
+        onFinish={(s) => update((d) => addSession(d, { ...s, d: device }))}
         onNext={() => next()}
         onRetry={retry}
       />
-      <Stats sessions={data.sessions} />
+      <Stats
+        sessions={data.sessions}
+        filter={filter}
+        onFilter={setFilter}
+        onSeeAll={() => setView('all')}
+        onDelete={remove}
+      />
     </div>
   );
 }
@@ -126,7 +165,7 @@ function Options({
               aria-pressed={on}
               onClick={() => onChange({ [t.key]: !on })}
               className={cn(
-                'inline-flex h-8 items-center gap-2 rounded border px-2.5 text-xs transition-colors duration-150',
+                'inline-flex h-8 items-center gap-2 rounded border px-2.5 text-xs transition-colors duration-150 hover:border-line-strong hover:text-ink',
                 on
                   ? 'border-accent/60 bg-accent/10 text-ink'
                   : 'border-line-strong text-ink-faint active:bg-surface-2',
@@ -201,6 +240,16 @@ function Run({
 
   useEffect(() => {
     input.current?.focus({ preventScroll: true });
+    // On a computer, typing anywhere on the page goes to the text.
+    if (getDevice() !== 'pc') return;
+    const key = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
+      const a = document.activeElement;
+      if (a && a !== document.body && a !== input.current) return;
+      input.current?.focus({ preventScroll: true });
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
   }, []);
 
   // Keep the current letter in the middle of the text box.
@@ -287,7 +336,7 @@ function Run({
         <div
           ref={box}
           className={cn(
-            'relative h-44 overflow-hidden px-4 py-3 font-mono text-[1.0625rem] leading-8 transition-[filter,opacity] duration-200 sm:text-[1.1875rem]',
+            'relative h-44 overflow-hidden px-4 py-3 font-mono text-[1.0625rem] leading-8 transition-[filter,opacity] duration-200 sm:h-56 sm:px-6 sm:py-5 sm:text-[1.3125rem] sm:leading-[2.6rem] lg:h-64 lg:text-[1.5rem] lg:leading-[3rem]',
             !focused && !done && 'opacity-60 blur-[1.5px]',
           )}
         >
@@ -333,7 +382,7 @@ function Run({
         <Finished done={done} onNext={onNext} onRetry={onRetry} />
       ) : (
         <div className="flex items-center justify-between text-xs text-ink-faint">
-          <span className="hidden sm:inline">Tab: new text. Esc: restart.</span>
+          <span className="hidden sm:inline">Tab: new text. Esc: restart. Just start typing.</span>
           <span className="sm:hidden">Mistakes stay red until you fix them.</span>
           <span className="flex gap-1">
             <button
@@ -373,7 +422,9 @@ function Live({
       <p
         className={cn(
           'font-serif leading-none tabular-nums transition-colors duration-200',
-          big ? 'text-[2.25rem]' : 'text-[1.75rem] pt-[0.4rem]',
+          big
+            ? 'text-[2.25rem] sm:text-[3rem]'
+            : 'text-[1.75rem] pt-[0.4rem] sm:pt-[0.6rem] sm:text-[2.25rem]',
           warn ? 'text-bad' : 'text-ink',
         )}
       >
@@ -491,102 +542,6 @@ function Finished({
           <RotateCcw className="h-4 w-4" /> Retry
         </button>
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Stats
-// ---------------------------------------------------------------------------
-
-function Stats({ sessions }: { sessions: Session[] }) {
-  if (sessions.length === 0) {
-    return (
-      <p className="flex items-center gap-2 text-sm text-ink-faint">
-        <Check className="h-4 w-4" /> Finish a text and your stats appear here.
-      </p>
-    );
-  }
-  const today = dayKey();
-  const t = totals(sessions, (iso) => dayKey(new Date(iso)) === today);
-  const recent = sessions.slice(-6).reverse();
-  return (
-    <section className="space-y-4">
-      <SectionLabel>Stats</SectionLabel>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-4">
-        {[
-          ['best wpm', String(Math.round(t.best))],
-          ['last 10 avg', String(Math.round(t.avg10))],
-          ['best accuracy', `${t.bestAcc}%`],
-          ['runs today', String(t.today)],
-          ['all runs', String(t.count)],
-          ['words typed', String(t.words)],
-          ['time spent', fmtTime(t.secs)],
-        ].map(([k, v]) => (
-          <div key={k} className="border-t border-line pt-2">
-            <p className="font-serif text-[1.5rem] leading-none tabular-nums text-ink">{v}</p>
-            <p className="mt-1 text-2xs uppercase tracking-wide text-ink-faint">{k}</p>
-          </div>
-        ))}
-      </div>
-      <Trend sessions={sessions.slice(-24)} />
-      <ul className="divide-y divide-line border-y border-line text-sm">
-        {recent.map((s) => (
-          <li key={s.t} className="flex items-center gap-3 py-2">
-            <span className="w-14 font-serif text-base tabular-nums text-ink">
-              {Math.round(s.wpm)}
-              <span className="ml-0.5 font-sans text-2xs text-ink-faint">wpm</span>
-            </span>
-            <span className={cn('w-12 tabular-nums', s.acc < 90 ? 'text-bad' : 'text-ink-muted')}>
-              {Math.round(s.acc)}%
-            </span>
-            <span className="flex-1 text-ink-faint">
-              {s.words} words, {fmtTime(s.secs)}
-            </span>
-            <span className="text-xs text-ink-faint">
-              {dayKey(new Date(s.t)) === today
-                ? new Date(s.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : new Date(s.t).toLocaleDateString([], { day: 'numeric', month: 'short' })}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function Trend({ sessions }: { sessions: Session[] }) {
-  if (sessions.length < 2) return null;
-  const W = 300;
-  const H = 64;
-  const max = Math.max(...sessions.map((s) => s.wpm));
-  const min = Math.min(...sessions.map((s) => s.wpm));
-  const span = Math.max(max - min, 10);
-  const pts = sessions.map((s, i) => [
-    (i / (sessions.length - 1)) * (W - 8) + 4,
-    H - 8 - ((s.wpm - min) / span) * (H - 16),
-  ]);
-  const last = pts[pts.length - 1] as number[];
-  return (
-    <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-16 w-full" role="img" aria-label="Speed trend">
-        <polyline
-          points={pts.map((p) => p.join(',')).join(' ')}
-          fill="none"
-          className="stroke-accent"
-          strokeWidth={1.75}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        <circle cx={last[0]} cy={last[1]} r={3.5} className="fill-accent" />
-      </svg>
-      <p className="flex justify-between text-2xs text-ink-faint">
-        <span>Last {sessions.length} runs</span>
-        <span>
-          {Math.round(min)} to {Math.round(max)} wpm
-        </span>
-      </p>
     </div>
   );
 }

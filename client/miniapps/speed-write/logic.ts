@@ -20,15 +20,22 @@ export interface Session {
   chars: number;
   secs: number;
   words: number;
+  /** Where it was typed: a computer, or a touch device (phone or tablet). Absent on old runs. */
+  d?: Device;
 }
+
+export type Device = 'pc' | 'touch';
 
 export interface SpeedData {
   settings: Settings;
   sessions: Session[];
+  /** Times of deleted runs, so combining with another device's data cannot bring them back. */
+  gone?: string[];
 }
 
 export const LENGTHS = [10, 25, 50, 100] as const;
 const MAX_SESSIONS = 400;
+const MAX_GONE = 200;
 
 export const INITIAL: SpeedData = {
   settings: {
@@ -44,12 +51,32 @@ export const INITIAL: SpeedData = {
 
 /** Combine this device's data with another's: sessions are unioned by time. */
 export function merge(server: SpeedData, local: SpeedData): SpeedData {
+  const gone = [...new Set([...(server.gone ?? []), ...(local.gone ?? [])])].slice(-MAX_GONE);
+  const dead = new Set(gone);
   const seen = new Set<string>();
   const sessions = [...(server.sessions ?? []), ...(local.sessions ?? [])]
-    .filter((s) => (seen.has(s.t) ? false : (seen.add(s.t), true)))
+    .filter((s) => (dead.has(s.t) || seen.has(s.t) ? false : (seen.add(s.t), true)))
     .sort((a, b) => a.t.localeCompare(b.t))
     .slice(-MAX_SESSIONS);
-  return { settings: local.settings ?? server.settings, sessions };
+  return { settings: local.settings ?? server.settings, sessions, gone };
+}
+
+export function deleteSession(d: SpeedData, t: string): SpeedData {
+  return {
+    ...d,
+    sessions: d.sessions.filter((s) => s.t !== t),
+    gone: [...(d.gone ?? []).filter((x) => x !== t), t].slice(-MAX_GONE),
+  };
+}
+
+/** Undo a delete: put the run back in its place. */
+export function restoreSession(d: SpeedData, s: Session): SpeedData {
+  if (d.sessions.some((x) => x.t === s.t)) return d;
+  return {
+    ...d,
+    sessions: [...d.sessions, s].sort((a, b) => a.t.localeCompare(b.t)).slice(-MAX_SESSIONS),
+    gone: (d.gone ?? []).filter((x) => x !== s.t),
+  };
 }
 
 export function addSession(d: SpeedData, s: Session): SpeedData {
@@ -279,6 +306,12 @@ export function generate(o: Settings): string {
 // ---------------------------------------------------------------------------
 // Stats
 // ---------------------------------------------------------------------------
+
+export type Filter = 'all' | Device;
+
+export function inFilter(sessions: Session[], f: Filter): Session[] {
+  return f === 'all' ? sessions : sessions.filter((s) => s.d === f);
+}
 
 export function result(
   chars: number,
